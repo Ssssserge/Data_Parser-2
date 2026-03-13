@@ -420,21 +420,24 @@ Scanner::~Scanner() {
 void Scanner::Init() {
 	EOL    = '\n';
 	eofSym = 0;
-	maxT = 11;
-	noSym = 11;
+	maxT = 15;
+	noSym = 15;
 	int i;
-	for (i = 48; i <= 57; ++i) start.set(i, 1);
-	for (i = 65; i <= 90; ++i) start.set(i, 2);
-	for (i = 97; i <= 122; ++i) start.set(i, 2);
-	start.set(59, 3);
-	start.set(61, 4);
-	start.set(43, 5);
-	start.set(45, 6);
-	start.set(42, 7);
-	start.set(47, 8);
+	for (i = 65; i <= 90; ++i) start.set(i, 1);
+	for (i = 97; i <= 122; ++i) start.set(i, 1);
+	for (i = 48; i <= 57; ++i) start.set(i, 2);
+	start.set(43, 14);
+	start.set(45, 5);
+	start.set(42, 6);
+	start.set(47, 7);
+	start.set(61, 8);
 	start.set(40, 9);
 	start.set(41, 10);
+	start.set(59, 11);
 		start.set(Buffer::EoF, -1);
+	keywords.set(L"print", 11);
+	keywords.set(L"read", 12);
+	keywords.set(L"variable", 13);
 
 
 	tvalLength = 128;
@@ -550,7 +553,7 @@ void Scanner::AppendVal(Token *t) {
 
 Token* Scanner::NextToken() {
 	while (ch == ' ' ||
-			(ch >= 9 && ch <= 13)
+			(ch >= 9 && ch <= 10) || ch == 13 || ch == L' '
 	) NextCh();
 
 	int recKind = noSym;
@@ -573,29 +576,48 @@ Token* Scanner::NextToken() {
 		case 1:
 			case_1:
 			recEnd = pos; recKind = 1;
-			if ((ch >= L'0' && ch <= L'9')) {AddCh(); goto case_1;}
-			else {t->kind = 1; break;}
+			if ((ch >= L'0' && ch <= L'9') || (ch >= L'A' && ch <= L'Z') || (ch >= L'a' && ch <= L'z')) {AddCh(); goto case_1;}
+			else {t->kind = 1; wchar_t *literal = coco_string_create(tval, 0, tlen); t->kind = keywords.get(literal, t->kind); coco_string_delete(literal); break;}
 		case 2:
 			case_2:
 			recEnd = pos; recKind = 2;
-			if ((ch >= L'0' && ch <= L'9') || (ch >= L'A' && ch <= L'Z') || (ch >= L'a' && ch <= L'z')) {AddCh(); goto case_2;}
+			if ((ch >= L'0' && ch <= L'9')) {AddCh(); goto case_2;}
+			else if (ch == L'.') {AddCh(); goto case_3;}
 			else {t->kind = 2; break;}
 		case 3:
-			{t->kind = 3; break;}
+			case_3:
+			if ((ch >= L'0' && ch <= L'9')) {AddCh(); goto case_4;}
+			else {goto case_0;}
 		case 4:
-			{t->kind = 4; break;}
+			case_4:
+			recEnd = pos; recKind = 2;
+			if ((ch >= L'0' && ch <= L'9')) {AddCh(); goto case_4;}
+			else {t->kind = 2; break;}
 		case 5:
-			{t->kind = 5; break;}
+			{t->kind = 4; break;}
 		case 6:
-			{t->kind = 6; break;}
+			{t->kind = 5; break;}
 		case 7:
-			{t->kind = 7; break;}
+			{t->kind = 6; break;}
 		case 8:
-			{t->kind = 8; break;}
+			{t->kind = 7; break;}
 		case 9:
-			{t->kind = 9; break;}
+			{t->kind = 8; break;}
 		case 10:
+			{t->kind = 9; break;}
+		case 11:
 			{t->kind = 10; break;}
+		case 12:
+			case_12:
+			if (ch == L'-') {AddCh(); goto case_13;}
+			else {goto case_0;}
+		case 13:
+			case_13:
+			{t->kind = 14; break;}
+		case 14:
+			recEnd = pos; recKind = 3;
+			if (ch == L'/') {AddCh(); goto case_12;}
+			else {t->kind = 3; break;}
 
 	}
 	AppendVal(t);

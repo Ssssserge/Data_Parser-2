@@ -3,6 +3,28 @@
 #if !defined(COCO_PARSER_H__)
 #define COCO_PARSER_H__
 
+#include <iostream>
+#include <map>
+#include <string>
+#include <cwchar>
+
+using namespace std;
+
+struct Var {
+    double val;
+    double err;
+    Var(double v = 0, double e = 0) : val(v), err(e) {}
+};
+
+static map<string, Var> vars;
+static double exprValue;
+static string idValue;
+static bool wasIdent = false;
+
+
+static string varName;
+static double varVal;
+static double varErr;
 
 
 #include "Scanner.h"
@@ -26,8 +48,20 @@ class Parser {
 private:
 	enum {
 		_EOF=0,
-		_number=1,
-		_ident=2
+		_ident=1,
+		_number=2,
+		_plus=3,
+		_minus=4,
+		_times=5,
+		_slash=6,
+		_assign=7,
+		_lparen=8,
+		_rparen=9,
+		_semicolon=10,
+		_print=11,
+		_read=12,
+		_variable=13,
+		_plusminus=14
 	};
 	int maxT;
 
@@ -55,8 +89,13 @@ public:
 	~Parser();
 	void SemErr(const wchar_t* msg);
 
-	void Test();
+	void DataParser();
 	void Statement();
+	void VariableDecl();
+	void Print();
+	void Read();
+	void Assignment();
+	void Ident();
 	void Expression();
 	void Term();
 	void Factor();

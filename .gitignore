@@ -1,1 +1,7 @@
 build
+
+#С этой фигней разберемся позже, пока просто игнорим
+Parser.cpp.old
+Parser.h.old
+Scanner.cpp.old
+Scanner.h.old

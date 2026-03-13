@@ -1,4 +1,10 @@
-x = 67 + 5 * 2;
-y = (x - 42) / 2;
-x;
-y = -67;
+variable g = 9.81 +/- 0.01;
+print g;
+variable e = 2.7;
+print e;
+variable Z = g + e * 2;
+print Z;
+print (g+6.7);
+print Z+52;
+read variable var;
+print var;

@@ -1,0 +1,113 @@
+#include <iostream>
+#include <map>
+#include <string>
+#include <cwchar>
+
+using namespace std;
+
+struct Var {
+    double val;
+    double err;
+    Var(double v = 0, double e = 0) : val(v), err(e) {}
+};
+
+static map<string, Var> vars;
+static double exprValue;
+static string idValue;
+static bool wasIdent = false;
+
+
+static string varName;
+static double varVal;
+static double varErr;
+
+COMPILER DataParser
+
+CHARACTERS
+  letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".
+  digit = "0123456789".
+
+TOKENS
+  ident = letter { letter | digit }.
+  number = digit { digit } [ '.' digit { digit } ].
+  plus = '+'.
+  minus = '-'.
+  times = '*'.
+  slash = '/'.
+  assign = '='.
+  lparen = '('.
+  rparen = ')'.
+  semicolon = ';'.
+  print = "print".
+  read = "read".
+  variable = "variable".
+  plusminus = "+/-". 
+
+IGNORE '\r' + '\n' + '\t' + ' '
+
+PRODUCTIONS
+DataParser
+= { Statement } EOF .
+
+Statement
+= ( VariableDecl | Print | Read | Assignment ) SYNC semicolon.
+
+VariableDecl
+= variable Ident
+  (. varName = idValue; .)
+  '=' Expression
+  (. varVal = exprValue; varErr = 0; .)
+  [ plusminus Expression
+    (. varErr = exprValue; .)
+  ]
+  (. vars[varName] = Var(varVal, varErr);
+  .).
+
+Print
+= print Expression
+  (. if (wasIdent) {
+         cout << idValue << " = " << vars[idValue].val << " +/- " << vars[idValue].err << endl;
+     } else {
+         cout << exprValue << " +/- " << 0.0 << endl;
+     }
+     wasIdent = false;
+  .).
+
+Read
+= read variable Ident                    (. double val, err; 
+                                            cout << "Enter variable val and err: ";
+                                            cin >> val >> err;
+                                            vars[idValue] = Var(val, err); .).
+
+Assignment
+= Ident assign Expression                (. string name = idValue; vars[name] = Var(exprValue, 0); .).
+
+Expression
+= Term
+  (. double cur = exprValue; .)
+  { plus  Term (. cur += exprValue; wasIdent = false; .)
+  | minus Term (. cur -= exprValue; wasIdent = false; .)
+  }
+  (. exprValue = cur; .).
+
+Term
+= Factor
+  (. double cur = exprValue; .)
+  { times Factor (. cur *= exprValue; wasIdent = false; .)
+  | slash Factor (. cur /= exprValue; wasIdent = false; .)
+  }
+  (. exprValue = cur; .).
+
+Factor
+= number
+  (. wstring num(t->val); exprValue = stod(num); wasIdent = false; .)
+| Ident
+  (. exprValue = vars[idValue].val; wasIdent = true; .)
+| lparen Expression rparen.
+
+Ident
+= ident
+  (. wstring wide(t->val);
+     idValue = string(wide.begin(), wide.end()); .).
+
+END DataParser.

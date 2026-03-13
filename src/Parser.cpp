@@ -61,59 +61,124 @@ bool Parser::WeakSeparator(int n, int syFol, int repFol) {
 	}
 }
 
-void Parser::Test() {
-		while (la->kind == _number || la->kind == _ident || la->kind == 9 /* "(" */) {
+void Parser::DataParser() {
+		while (StartOf(1)) {
 			Statement();
-			Expect(3 /* ";" */);
 		}
+		Expect(_EOF);
 }
 
 void Parser::Statement() {
-		if (la->kind == _ident) {
+		if (la->kind == _variable) {
+			VariableDecl();
+		} else if (la->kind == _print) {
+			Print();
+		} else if (la->kind == _read) {
+			Read();
+		} else if (la->kind == _ident) {
+			Assignment();
+		} else SynErr(16);
+		while (!(la->kind == _EOF || la->kind == _semicolon)) {SynErr(17); Get();}
+		Expect(_semicolon);
+}
+
+void Parser::VariableDecl() {
+		Expect(_variable);
+		Ident();
+		varName = idValue; 
+		Expect(_assign);
+		Expression();
+		varVal = exprValue; varErr = 0; 
+		if (la->kind == _plusminus) {
 			Get();
-			Expect(4 /* "=" */);
 			Expression();
-		} else if (la->kind == _number || la->kind == _ident || la->kind == 9 /* "(" */) {
-			Expression();
-		} else SynErr(12);
+			varErr = exprValue; 
+		}
+		vars[varName] = Var(varVal, varErr);
+		
+}
+
+void Parser::Print() {
+		Expect(_print);
+		Expression();
+		if (wasIdent) {
+		   cout << idValue << " = " << vars[idValue].val << " +/- " << vars[idValue].err << endl;
+		} else {
+		   cout << exprValue << " +/- " << 0.0 << endl;
+		}
+		wasIdent = false;
+		
+}
+
+void Parser::Read() {
+		Expect(_read);
+		Expect(_variable);
+		Ident();
+		double val, err; 
+		cout << "Enter variable val and err ";
+		cin >> val >> err;
+		vars[idValue] = Var(val, err); 
+}
+
+void Parser::Assignment() {
+		Ident();
+		Expect(_assign);
+		Expression();
+		string name = idValue; vars[name] = Var(exprValue, 0); 
+}
+
+void Parser::Ident() {
+		Expect(_ident);
+		wstring wide(t->val);
+		idValue = string(wide.begin(), wide.end()); 
 }
 
 void Parser::Expression() {
 		Term();
-		while (la->kind == 5 /* "+" */ || la->kind == 6 /* "-" */) {
-			if (la->kind == 5 /* "+" */) {
+		double cur = exprValue; 
+		while (la->kind == _plus || la->kind == _minus) {
+			if (la->kind == _plus) {
 				Get();
 				Term();
+				cur += exprValue; wasIdent = false; 
 			} else {
 				Get();
 				Term();
+				cur -= exprValue; wasIdent = false; 
 			}
 		}
+		exprValue = cur; 
 }
 
 void Parser::Term() {
 		Factor();
-		while (la->kind == 7 /* "*" */ || la->kind == 8 /* "/" */) {
-			if (la->kind == 7 /* "*" */) {
+		double cur = exprValue; 
+		while (la->kind == _times || la->kind == _slash) {
+			if (la->kind == _times) {
 				Get();
 				Factor();
+				cur *= exprValue; wasIdent = false; 
 			} else {
 				Get();
 				Factor();
+				cur /= exprValue; wasIdent = false; 
 			}
 		}
+		exprValue = cur; 
 }
 
 void Parser::Factor() {
 		if (la->kind == _number) {
 			Get();
+			wstring num(t->val); exprValue = stod(num); wasIdent = false; 
 		} else if (la->kind == _ident) {
-			Get();
-		} else if (la->kind == 9 /* "(" */) {
+			Ident();
+			exprValue = vars[idValue].val; wasIdent = true; 
+		} else if (la->kind == _lparen) {
 			Get();
 			Expression();
-			Expect(10 /* ")" */);
-		} else SynErr(13);
+			Expect(_rparen);
+		} else SynErr(18);
 }
 
 
@@ -212,12 +277,12 @@ void Parser::Parse() {
 	la = dummyToken = new Token();
 	la->val = coco_string_create(L"Dummy Token");
 	Get();
-	Test();
+	DataParser();
 	Expect(0);
 }
 
 Parser::Parser(Scanner *scanner) {
-	maxT = 11;
+	maxT = 15;
 
 	ParserInitCaller<Parser>::CallInit(this);
 	dummyToken = NULL;
@@ -232,8 +297,9 @@ bool Parser::StartOf(int s) {
 	const bool T = true;
 	const bool x = false;
 
-	static bool set[1][13] = {
-		{T,x,x,x, x,x,x,x, x,x,x,x, x}
+	static bool set[2][17] = {
+		{T,x,x,x, x,x,x,x, x,x,T,x, x,x,x,x, x},
+		{x,T,x,x, x,x,x,x, x,x,x,T, T,T,x,x, x}
 	};
 
 
@@ -255,19 +321,24 @@ void Errors::SynErr(int line, int col, int n) {
 	wchar_t* s;
 	switch (n) {
 			case 0: s = coco_string_create(L"EOF expected"); break;
-			case 1: s = coco_string_create(L"number expected"); break;
-			case 2: s = coco_string_create(L"ident expected"); break;
-			case 3: s = coco_string_create(L"\";\" expected"); break;
-			case 4: s = coco_string_create(L"\"=\" expected"); break;
-			case 5: s = coco_string_create(L"\"+\" expected"); break;
-			case 6: s = coco_string_create(L"\"-\" expected"); break;
-			case 7: s = coco_string_create(L"\"*\" expected"); break;
-			case 8: s = coco_string_create(L"\"/\" expected"); break;
-			case 9: s = coco_string_create(L"\"(\" expected"); break;
-			case 10: s = coco_string_create(L"\")\" expected"); break;
-			case 11: s = coco_string_create(L"??? expected"); break;
-			case 12: s = coco_string_create(L"invalid Statement"); break;
-			case 13: s = coco_string_create(L"invalid Factor"); break;
+			case 1: s = coco_string_create(L"ident expected"); break;
+			case 2: s = coco_string_create(L"number expected"); break;
+			case 3: s = coco_string_create(L"plus expected"); break;
+			case 4: s = coco_string_create(L"minus expected"); break;
+			case 5: s = coco_string_create(L"times expected"); break;
+			case 6: s = coco_string_create(L"slash expected"); break;
+			case 7: s = coco_string_create(L"assign expected"); break;
+			case 8: s = coco_string_create(L"lparen expected"); break;
+			case 9: s = coco_string_create(L"rparen expected"); break;
+			case 10: s = coco_string_create(L"semicolon expected"); break;
+			case 11: s = coco_string_create(L"print expected"); break;
+			case 12: s = coco_string_create(L"read expected"); break;
+			case 13: s = coco_string_create(L"variable expected"); break;
+			case 14: s = coco_string_create(L"plusminus expected"); break;
+			case 15: s = coco_string_create(L"??? expected"); break;
+			case 16: s = coco_string_create(L"invalid Statement"); break;
+			case 17: s = coco_string_create(L"this symbol not expected in Statement"); break;
+			case 18: s = coco_string_create(L"invalid Factor"); break;
 
 		default:
 		{

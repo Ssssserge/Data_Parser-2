@@ -1,12 +1,14 @@
 cmake_minimum_required(VERSION 3.14)
 project(Data_Parser)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
 set(UTILS_DIR "${CMAKE_SOURCE_DIR}/utilities")
-set(COCO_EXE "${UTILS_DIR}/coco-src/Coco_exe.exe")
+set(COCO_EXE "${UTILS_DIR}/coco-src/Coco.exe")
 set(FRAMES_DIR "${UTILS_DIR}/coco-frames")   
 
-set(GRAMMAR_FILE "${CMAKE_SOURCE_DIR}/src/parser.atg")
+set(GRAMMAR_FILE "${CMAKE_SOURCE_DIR}/src/DataParser.atg")
 
 set(GENERATED_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/scanner.cpp"
